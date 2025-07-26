@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Environment } from './config/env';
+import { GithubProfileModule } from './github-profile/github-profile.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { Environment } from './config/env';
       autoLoadEntities: true,
       synchronize: process.env.ENV === 'dev' ? true : false,
     }),
+    GithubProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

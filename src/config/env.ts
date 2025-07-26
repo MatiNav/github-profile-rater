@@ -6,4 +6,5 @@ export const Environment = () => ({
   dbUsername: process.env.DB_USERNAME,
   port: process.env.PORT,
   hostApi: process.env.HOST_API,
+  githubToken: process.env.GITHUB_TOKEN,
 });
