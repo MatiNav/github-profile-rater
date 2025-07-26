@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GithubUserEvents } from 'src/interfaces/GithubUserEvents';
 
@@ -12,25 +16,46 @@ export class GithubProfileService {
     this.githubToken = this.configService.getOrThrow<string>('githubToken');
   }
 
-  async getProfileRate(): Promise<any> {
-    const commitsResp = await fetch(
-      `${this.GITHUB_URL}users/c9s/events/public?per_page=100`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.githubToken}`,
+  async getProfileRate(username: string): Promise<{ profileRate: number }> {
+    // todo: refactor to an adapter
+    try {
+      const commitsResp = await fetch(
+        `${this.GITHUB_URL}users/${username}/events/public?per_page=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.githubToken}`,
+          },
         },
-      },
-    );
-    const data = (await commitsResp.json()) as GithubUserEvents[];
+      );
+      const data = (await commitsResp.json()) as
+        | GithubUserEvents[]
+        | { status: string };
 
-    const commits = data.filter((item) => item.type === 'PushEvent'); // 20%
-    const reviews = data.filter(
-      (item) => item.type === 'PullRequestReviewEvent',
-    ); // 50%
-    const comments = data.filter(
-      (item) => item.type === 'PullRequestReviewCommentEvent',
-    ); // 30%
+      if ('status' in data) throw data;
 
-    return { commits, reviews, comments };
+      // factory
+      const commits = data.filter((item) => item.type === 'PushEvent'); // 20%
+      const reviews = data.filter(
+        (item) => item.type === 'PullRequestReviewEvent',
+      ); // 50%
+      const comments = data.filter(
+        (item) => item.type === 'PullRequestReviewCommentEvent',
+      ); // 30%
+
+      const commitsRate = commits.length > 20 ? 5 : commits.length / 4;
+      const commentsRate = comments.length > 20 ? 5 : comments.length / 4;
+      const reviewsRate = reviews.length > 5 ? 5 : reviews.length;
+
+      const profileRate = Math.floor(
+        (commitsRate + commentsRate + reviewsRate) / 3,
+      );
+
+      return { profileRate };
+    } catch (error) {
+      if ('status' in error && error.status === '404') {
+        throw new NotFoundException('User not found.');
+      }
+      throw new InternalServerErrorException('Please contact support.');
+    }
   }
 }
