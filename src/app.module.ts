@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CommonModule } from './common/common.module';
 import { Environment } from './config/env';
 import { GithubProfileModule } from './github-profile/github-profile.module';
 
@@ -20,6 +21,7 @@ import { GithubProfileModule } from './github-profile/github-profile.module';
       synchronize: process.env.ENV === 'dev' ? true : false,
     }),
     GithubProfileModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService],

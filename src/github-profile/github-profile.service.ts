@@ -4,7 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GithubUserEvents } from 'src/interfaces/GithubUserEvents';
+import { FetchAdapter } from 'src/common/adapters/fetch.adapter';
+import { GithubUserEvents } from 'src/common/interfaces/GithubUserEvents';
 
 @Injectable()
 export class GithubProfileService {
@@ -12,24 +13,22 @@ export class GithubProfileService {
 
   private githubToken: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly fetchAdapter: FetchAdapter,
+  ) {
     this.githubToken = this.configService.getOrThrow<string>('githubToken');
   }
 
   async getProfileRate(username: string): Promise<{ profileRate: number }> {
-    // todo: refactor to an adapter
     try {
-      const commitsResp = await fetch(
-        `${this.GITHUB_URL}users/${username}/events/public?per_page=100`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.githubToken}`,
-          },
+      const data = await this.fetchAdapter.get<
+        GithubUserEvents[] | { status: string }
+      >(`${this.GITHUB_URL}users/${username}/events/public?per_page=100`, {
+        headers: {
+          Authorization: `Bearer ${this.githubToken}`,
         },
-      );
-      const data = (await commitsResp.json()) as
-        | GithubUserEvents[]
-        | { status: string };
+      });
 
       if ('status' in data) throw data;
 
